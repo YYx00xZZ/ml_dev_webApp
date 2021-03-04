@@ -1,0 +1,16 @@
+name: ml_dev_webApp
+dependencies:
+  - python=3.8
+  - numpy
+  - keras
+  # if you have nvidia GPU change this with tensorflow-gpu
+  - tensorflow
+  - pandas
+  - scikit-learn
+  - pip
+  - pip:
+      - opencv-contrib-python
+      - streamlit
+      - sklearn
+      - yfinance
+
