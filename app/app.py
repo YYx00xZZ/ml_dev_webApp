@@ -7,15 +7,59 @@ import time
 
 """
 # PyBrain
-Here's our first attempt at using data to create a table:
+Here's our first attempt at using python programming language to solve EEG motor-imagery classification problem. (:
 """
+# ------------------------------------
+"""
+# File Uploader
+It's hard to test the ability to upload files in an automated way, so here you
+should test it by hand. Please upload a CSV file and make sure a table shows up
+below with its contents.
+"""
+w = st.file_uploader("Upload a CSV file", type="csv")
+if w:
+    import pandas as pd
+    data = pd.read_csv(w)
+    st.write(data)
+# ------------------------------------
 
-df = pd.DataFrame({
-  'first column': [1, 2, 3, 4],
-  'second column': [10, 20, 30, 40]
-})
+DATE_COLUMN = 'date/time'
+DATA_URL = ('https://s3-us-west-2.amazonaws.com/streamlit-demo-data/uber-raw-data-sep14.csv.gz')
 
-df
+
+@st.cache
+def load_data(nrows):
+    data = pd.read_csv(DATA_URL, nrows=nrows)
+    lowercase = lambda x: str(x).lower()
+    data.rename(lowercase, axis='columns', inplace=True)
+    data[DATE_COLUMN] = pd.to_datetime(data[DATE_COLUMN])
+    return data
+
+# Create a text element and let the reader know the data is loading.
+data_load_state = st.text('Loading data...')
+# Load 10,000 rows of data into the dataframe.
+data = load_data(10000)
+# Notify the reader that the data was successfully loaded.
+data_load_state.text("Done! (using st.cache)")
+
+if st.checkbox('Show raw test data'):
+    st.subheader('Raw data')
+    st.write(data)
+
+st.subheader('Number of pickups by hour')
+
+hist_values = np.histogram(
+    data[DATE_COLUMN].dt.hour, bins=24, range=(0,24))[0]
+
+st.bar_chart(hist_values)
+
+
+# df = pd.DataFrame({
+#   'first column': [1, 2, 3, 4],
+#   'second column': [10, 20, 30, 40]
+# })
+
+# df
 
 chart_data = pd.DataFrame(
      np.random.randn(20, 3),
@@ -23,17 +67,17 @@ chart_data = pd.DataFrame(
 
 st.line_chart(chart_data)
 
-map_data = pd.DataFrame(
-    np.random.randn(1000, 2) / [50, 50] + [37.76, -122.4],
-    columns=['lat', 'lon'])
+# map_data = pd.DataFrame(
+#     np.random.randn(1000, 2) / [50, 50] + [37.76, -122.4],
+#     columns=['lat', 'lon'])
 
-st.map(map_data)
+# st.map(map_data)
 
-option = st.sidebar.selectbox(
-    'Which number do you like best?',
-     df['first column'])
+# option = st.sidebar.selectbox(
+#     'Which number do you like best?',
+#      df['first column'])
 
-'You selected:', option
+# 'You selected:', option
 
 left_column, right_column = st.beta_columns(2)
 pressed = left_column.button('Press me?')
