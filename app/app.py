@@ -48,8 +48,7 @@ if st.checkbox('Show raw test data'):
 
 st.subheader('Number of pickups by hour')
 
-hist_values = np.histogram(
-    data[DATE_COLUMN].dt.hour, bins=24, range=(0,24))[0]
+hist_values = np.histogram(data[DATE_COLUMN].dt.hour, bins=24, range=(0,24))[0]
 
 st.bar_chart(hist_values)
 
@@ -62,7 +61,7 @@ st.bar_chart(hist_values)
 # df
 
 chart_data = pd.DataFrame(
-     np.random.randn(20, 3),
+     np.random.randn(20, 3), 
      columns=['a', 'b', 'c'])
 
 st.line_chart(chart_data)
