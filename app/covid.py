@@ -15,24 +15,32 @@ import panel as pn
 import pathlib
 import json
 
+st.set_page_config(layout='wide')
+
+
+URL = 'https://services1.arcgis.com/0MSEUqKaxRlEPj5g/arcgis/rest/services/Coronavirus_2019_nCoV_Cases/FeatureServer/1/query?where=1%3D1&outFields=*&outSR=4326&f=json'
+URL_STYLED = '[services1.arcgis.com](https://services1.arcgis.com/0MSEUqKaxRlEPj5g/arcgis/rest/services/Coronavirus_2019_nCoV_Cases/FeatureServer/1/query?where=1%3D1&outFields=*&outSR=4326&f=json)'
+st.markdown(f'current data source: {URL_STYLED}')
+st.beta_container()
+
 @st.cache
 def load_data():
-    raw= requests.get("https://services1.arcgis.com/0MSEUqKaxRlEPj5g/arcgis/rest/services/Coronavirus_2019_nCoV_Cases/FeatureServer/1/query?where=1%3D1&outFields=*&outSR=4326&f=json")
+    raw= requests.get(URL)  #"https://services1.arcgis.com/0MSEUqKaxRlEPj5g/arcgis/rest/services/Coronavirus_2019_nCoV_Cases/FeatureServer/1/query?where=1%3D1&outFields=*&outSR=4326&f=json")
     raw_json = raw.json()
     df = pd.DataFrame(raw_json["features"])
-    # print(raw_json, df)
     return (raw_json, df)
 
 
 data = load_data()
 raw_output = data[0]
 df = data[1]
+csv = df.to_csv(r'app/covid_raw_output.csv', header=True, index=None, sep=',', mode='a')
 
 with open('app/covid_raw_output.txt', 'w') as outfile:
     json.dump(raw_output, outfile)
 
 # Create a text element and let the reader know the data is loading.
-data_load_state = st.text('Loading data...')
+data_load_state = st.info('Loading data...')
 data = load_data()
 # Notify the reader that the data was successfully loaded.
 data_load_state.text("Done! (using st.cache)")
@@ -40,94 +48,95 @@ data_load_state.text("Done! (using st.cache)")
 
 if st.checkbox('Show raw response data'):
     st.subheader('Raw data')
-    st.write(raw_output)
+    st.write(raw_output['features'])
 
 
-csv = df.to_csv(r'app/covid_raw_output.csv', header=True, index=None, sep=',', mode='a')
+# csv = df.to_csv(r'app/covid_raw_output.csv', header=True, index=None, sep=',', mode='a')
 
-# def request_download(filename):
-    
 download_raw_output = st.button('Download Raw Data')
 if download_raw_output:
     'Download Started!'
-    # liste= ['A','B','C']
-    # df_download= pd.DataFrame(liste)
-    # df_download.columns=['Title']
-    # df_download
     csv = df.to_csv(index=False)
     b64 = base64.b64encode(csv.encode()).decode()  # some strings
-    linko= f'<a href="data:file/csv;base64,{b64}" download="myfilename.txt">Download csv file</a>'
+    linko= f'<a href="data:file/csv;base64,{b64}" download="download_raw_output.txt">Download csv file</a>'
     st.markdown(linko, unsafe_allow_html=True)
 
-# Examples
-# df = pd.DataFrame({'x': list(range(10)), 'y': list(range(10))})
-# st.write(df)
-# part = download_link(df, 'TESTCSV.csv', 'Click here to download data!')
-# st.write(part)
-# def get_table_download_link(df):
-#     """Generates a link allowing the data in a given panda dataframe to be downloaded
-#     in:  dataframe
-#     out: href string
-#     """
-#     csv = df.to_csv(r'app/covid_raw_output.txt', header=None, index=None, sep=' ', mode='a')
 
-#     href = f'<a href="data:file/csv;base64,{csv}">Download csv file</a>'
-#     href = f'#'
-#     text = """\
-#     There is currently (20191204) no official way of downloading data from Streamlit. See for
-#     example [Issue 400](https://github.com/streamlit/streamlit/issues/400)
-
-#     But I discovered a workaround
-#     [here](https://github.com/holoviz/panel/issues/839#issuecomment-561538340).
-
-#     It's based on the concept of
-#     [HTML Data URLs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URIs)
-
-#     You can try it out below for a dataframe csv file download.
-
-#     The methodology can be extended to other file types. For inspiration see
-#     [base64.guru](https://base64.guru/converter/encode/file)
-#     """
-
-# # transform
-# data_list = df["attributes"].tolist()
-# df_final = pd.DataFrame(data_list)
-# df_final.set_index("OBJECTID")
-# df_final = df_final[["Country_Region", "Province_State", "Lat", "Long_", "Confirmed", "Deaths", "Recovered", "Last_Update"]]
-
-# # write to csv
-# # recommend to download
-# # st.cache!
+st.subheader('transform')
+# transform
+data_list = df["attributes"].tolist()
+df_final = pd.DataFrame(data_list)
+df_final.set_index("OBJECTID")
+df_final = df_final[["Country_Region", "Province_State", "Lat", "Long_", "Confirmed", "Deaths", "Recovered", "Last_Update"]]
+st.write(df_final)
+download_transformed_output = st.button('Download download_transformed_output')
+if download_transformed_output:
+    'Download started'
+    csv = df_final.to_csv(index=False)
+    b64 = base64.b64encode(csv.encode()).decode()  # some strings
+    linko= f'<a href="data:file/csv;base64,{b64}" download="download_transformed_output.txt">Download csv file</a>'
+    st.markdown(linko, unsafe_allow_html=True)
 
 
-# def convertTime(t):
-#     t = int(t)
-#     return datetime.fromtimestamp(t)
+st.subheader('clearing')
+# clearing
+df_clear = df_final.copy()
+df_clear = df_clear.dropna(subset=["Last_Update"])
+df_clear["Province_State"].fillna(value="", inplace=True)
 
-# df_final = df_final.dropna(subset=["Last_Update"])
-# df_final["Province_State"].fillna(value="", inplace=True)
+def convertTime(t):
+    """convert the timestamp into a date with format “yyyy-mm-dd-hh-mm-ss” 
+    """
+    t = int(t)
+    return datetime.fromtimestamp(t)
 
-# df_final["Last_Update"]= df_final["Last_Update"]/1000
-# df_final["Last_Update"] = df_final["Last_Update"].apply(convertTime)
-# df_final
-# df_total = df_final.groupby("Country_Region", as_index=False).agg(
-#     {
-#         "Confirmed" : "sum",
-#         "Deaths" : "sum",
-#         "Recovered" : "sum"
-#     }
-# )
-# st.dataframe(df_total)
+df_clear["Last_Update"]= df_clear["Last_Update"]/1000
+df_clear["Last_Update"] = df_clear["Last_Update"].apply(convertTime)
+# clearing
+st.dataframe(df_clear)
+
+download_cleared_output = st.button('Download download_cleared_output')
+if download_cleared_output:
+    'Download started'
+    csv = df_final.to_csv(index=False)
+    b64 = base64.b64encode(csv.encode()).decode()  # some strings
+    linko= f'<a href="data:file/csv;base64,{b64}" download="download_cleared_output.txt">Download csv file</a>'
+    st.markdown(linko, unsafe_allow_html=True)
+
+st.subheader('Aggregate')
+# Aggregate
+df_total = df_final.groupby("Country_Region", as_index=False).agg(
+    {
+        "Confirmed" : "sum",
+        "Deaths" : "sum",
+        "Recovered" : "sum"
+    }
+)
+df_mid = df_total.copy()
+df_mid['Last_Update'] = df_clear['Last_Update']
+st.line_chart(df_total)
+st.dataframe(df_total)
+download_aggregated_output = st.button('Download download_aggregated_output')
+if download_aggregated_output:
+    'Download started'
+    csv = df_final.to_csv(index=False)
+    b64 = base64.b64encode(csv.encode()).decode()  # some strings
+    linko= f'<a href="data:file/csv;base64,{b64}" download="download_aggregated_output.txt">Download csv file</a>'
+    st.markdown(linko, unsafe_allow_html=True)
+
 
 # if st.checkbox('Show raw test data'):
 #     st.subheader('Raw data')
 #     # st.write(raw.text)
 #     st.json(raw_json)
 
-
-# total_confirmed = df_final["Confirmed"].sum()
-# total_recovered = df_final["Recovered"].sum()
-# total_deaths = df_final["Deaths"].sum()
+st.header('Global statistics')
+total_confirmed = df_final["Confirmed"].sum()
+total_recovered = df_final["Recovered"].sum()
+total_deaths = df_final["Deaths"].sum()
+st.subheader(f'total_confirmed: {total_confirmed}')
+st.subheader(f'total_recovered: {total_recovered}')
+st.subheader(f'total_deaths: {total_deaths}')
 
 # df_top10 = df_total.nlargest(10, "Confirmed")
 # top10_countries_1 = df_top10["Country_Region"].tolist()
