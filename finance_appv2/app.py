@@ -14,7 +14,7 @@ def web_content_div(web_content, class_path):
     return texts
 
 def real_time_price(stock_code):
-    url = 
+    url = "https://s3-us-west-2.amazonaws.com/streamlit-demo-data/uber-raw-data-sep14.csv.gz"
     try:
         r = requests.get(url)
         web_content = BeautifulSoup(r.text, 'lxml')

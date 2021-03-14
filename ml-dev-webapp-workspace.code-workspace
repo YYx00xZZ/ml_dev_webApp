@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "../hepamortalis"
+		},
+		{
+			"path": "../pipeline_app"
 		}
 	],
 	"settings": {}
