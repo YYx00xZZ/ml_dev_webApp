@@ -1,3 +1,0 @@
-conda create --name tf2
-conda activate tf2
-conda install tensorflow-gpu
