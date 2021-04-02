@@ -15,21 +15,37 @@ from sklearn.neural_network import MLPClassifier
 
 st.set_page_config(layout='wide')
 
-# CONFIG
-# Глобални променливи
-file_path_in = 'data/'
-file_path_out = 'results/'
-file_name_in_1 = '4_GD_14ch_LR_24_01_2020_VStim_20Repeat_3sec_epoch_3_off_0.25_chunk_0.025_8_Butter_Mean'
-file_name_in = '2_KA_14ch_LR_23_01_2020_VStim_20Repeat_3sec_epoch_3_off_0.25_chunk_0.25_4_with_shunk_and_notnull'+'.csv' #"4_GD_14ch_LR_24_01_2020_VStim_20Repeat_3sec_epoch_3_off_0.25_chunk_0.025_8_Butter_Mean"+".csv"
-# datetime object containing current date and time
-now = datetime.now()  # dd/mm/YY H:M:S
-dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
-str_filename_Out = 'BCI_Classification'
-File_Out_Full = file_path_out + str_filename_Out + dt_string + '.txt'
-# Data_Result
-f = open( File_Out_Full,"a")
-f.write("\n")
-f.close()
+#---------------------------------#
+# Sidebar - Collects user input features into dataframe
+st.sidebar.header('Upload your CSV data')
+uploaded_file = st.sidebar.file_uploader("Upload your input CSV file", type=["csv"])
+
+# Sidebar - Specify parameter settings
+st.sidebar.header('Set Parameters')
+split_size = st.sidebar.slider('Data split ratio (% for Training Set)', 10, 90, 80, 5)
+
+st.sidebar.subheader('Learning Parameters')
+parameter_n_estimators = st.sidebar.slider('Number of estimators (n_estimators)', 0, 500, (10,50), 50)
+parameter_n_estimators_step = st.sidebar.number_input('Step size for n_estimators', 10)
+st.sidebar.write('---')
+parameter_max_features = st.sidebar.slider('Max features (max_features)', 1, 50, (1,3), 1)
+st.sidebar.number_input('Step size for max_features', 1)
+st.sidebar.write('---')
+parameter_min_samples_split = st.sidebar.slider('Minimum number of samples required to split an internal node (min_samples_split)', 1, 10, 2, 1)
+parameter_min_samples_leaf = st.sidebar.slider('Minimum number of samples required to be at a leaf node (min_samples_leaf)', 1, 10, 2, 1)
+
+st.sidebar.subheader('General Parameters')
+parameter_random_state = st.sidebar.slider('Seed number (random_state)', 0, 1000, 42, 1)
+parameter_criterion = st.sidebar.select_slider('Performance measure (criterion)', options=['mse', 'mae'])
+parameter_bootstrap = st.sidebar.select_slider('Bootstrap samples when building trees (bootstrap)', options=[True, False])
+parameter_oob_score = st.sidebar.select_slider('Whether to use out-of-bag samples to estimate the R^2 on unseen data (oob_score)', options=[False, True])
+parameter_n_jobs = st.sidebar.select_slider('Number of jobs to run in parallel (n_jobs)', options=[1, -1])
+
+
+n_estimators_range = np.arange(parameter_n_estimators[0], parameter_n_estimators[1]+parameter_n_estimators_step, parameter_n_estimators_step)
+max_features_range = np.arange(parameter_max_features[0], parameter_max_features[1]+1, 1)
+param_grid = dict(max_features=max_features_range, n_estimators=n_estimators_range)
+# -----------------------
 
 st.write('''
 # PyBrain
@@ -49,32 +65,7 @@ def file_selector(folder_path):
 st.write('''
 ## read data
 ''')
-fileslist = get_static_store()
-st.text(os.getcwd())
-folderPath = st.text_input('Enter folder path:', 'data/')
-if folderPath:
-    filename = file_selector(folderPath)
-    # if not filename in fileslist.values():
-        # fileslist[filename] = filename
-else:
-    fileslist.clear()  # Hack to clear list if the user clears the cache and reloads the page
-    st.info("Select one or more files.")
 
-if st.button("Clear file list"):
-    fileslist.clear()
-if st.checkbox("Show file list?", False):
-    finalNames = list(fileslist.keys())
-    st.write(list(fileslist.keys()))
-
-@st.cache(allow_output_mutation=True)
-def get_static_store() -> Dict:
-    """This dictionary is initialized once and can be used to store the files uploaded"""
-    return {}
-
-def file_selector(folder_path):
-    filenames = os.listdir(folder_path)
-    selected_filename = st.selectbox('Select a file', filenames)
-    return os.path.join(folder_path, selected_filename)
 
 # DATASET PREPROCESS RELATED
 def load_data():
@@ -162,7 +153,7 @@ with col2:
 
 def prepare(df):
     # something like LabelEncoder
-    df.replace({"left": 0 ,"right": 1}, inplace=True)
+    df.EventId.replace({"left": 0 ,"right": 1}, inplace=True)
     # Feature selection - отделяне на полетата с характеристиките и колоната със събитията
     electrodes_to_keep =  ["AF3", "F7", "F3", "F5", "T7", "P7", "O1", "O2", "P8", "T8", "FC6", "F4", "F8", "AF4"]
     predict = "EventId"
@@ -208,3 +199,20 @@ else:
 # # st.write("\nExperience\tActual Salary\tPredicted Salary")
 # # for i in range(len(predictions)):
 #     # st.write(X[i], "\t\t", Y[i], "\t\t", predictions[i])
+st.sidebar()
+fileslist = get_static_store()
+st.text(os.getcwd())
+folderPath = st.text_input('Enter folder path:', 'data/')
+if folderPath:
+    filename = file_selector(folderPath)
+    # if not filename in fileslist.values():
+        # fileslist[filename] = filename
+else:
+    fileslist.clear()  # Hack to clear list if the user clears the cache and reloads the page
+    st.info("Select one or more files.")
+
+if st.button("Clear file list"):
+    fileslist.clear()
+if st.checkbox("Show file list?", False):
+    finalNames = list(fileslist.keys())
+    st.write(list(fileslist.keys()))

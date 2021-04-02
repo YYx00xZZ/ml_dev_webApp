@@ -54,18 +54,6 @@ if __name__ == '__main__':
     predictions = loaded_mlp_model.predict(X[1,:].reshape(1,-1))
     # st.write(X[1,:])
 
-- select rows
-- select file for test
-- use 2-3 algoritm with cascade param
-- create function for select list
-
-event 1
-event 2
-event 2
-....
-
-Event - neutral
-
     st.write(predictions)
     st.write(Y[1])
     # displaying the predictions
