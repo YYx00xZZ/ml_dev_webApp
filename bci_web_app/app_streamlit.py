@@ -53,6 +53,24 @@ def filter_events(dataframe):
     """
     dataframe = dataframe[(dataframe.EventId == '33025') | (dataframe.EventId == '33026')]
     return dataframe.astype({'EventId': 'int'})
+
+
+def neutral_events(dataframe):
+    EventID_NEW = ''
+    EventID_TO_SET = ''
+    for index, row in dataframe.iterrows(): #итерираме ред по ред с вградения метод iterrows() от pandas
+        EventID_NEW = str(row['EventId']) # достъпваме данни чрез име на колона
+        # print(EventID_NEW)
+        if (EventID_NEW == '33025') or (EventID_NEW == '33026'):
+            # dataframe.at[index, 'EventId'] = str('33027')  #(EventID_TO_SET)
+            pass
+        else:
+            dataframe.at[index,'EventId'] = str('33027')
+            # EventID_NEW = str('33027') # (row['EventId'])
+            # print(f'from else: new {EventID_NEW}')
+            # EventID_TO_SET = str('33027') # (row['EventId'])
+            # print(f'from else: to set {EventID_TO_SET}')
+    return dataframe.astype({'EventId': 'int'}) # .astype({'EventId': 'int'})
 #---------------------------------#
 # def update_event_ids_all_event(data):
 #     # Генерипа последователно ID за всеки event - може да се използва за TIME серии и др.
@@ -286,22 +304,41 @@ def DataToPredict():
     return []
 
 @st.cache
-def ReadLoadDF(dataframe):
+def ReadLoadDF(df_file):
+    dataframe = pd.read_csv(df_file)
     dataframe.columns = dataframe.columns.str.replace(" ","")
-    df = filter_events(populate_ids(populate_NaN(dataframe)))
+    df = neutral_events(populate_ids(populate_NaN(dataframe)))
     return df
 
+@st.cache
+def convert_df(df):
+    return df.to_csv(index=False).encode('utf-8')
+# @st.cache
+# def DFWithSelectedColumns(df):
+#     return df
+
 if uploaded_file is not None:
-    dataframe = pd.read_csv(uploaded_file)
+    # dataframe = pd.read_csv(uploaded_file)
     # dataframe.columns = dataframe.columns.str.replace(" ","")
-    # df=filter_events(populate_ids(populate_NaN(dataframe)))
-    df = ReadLoadDF(dataframe)
+    # df=neutral_events(populate_ids(populate_NaN(dataframe)))
+    df = ReadLoadDF(uploaded_file)
+    
     st.markdown('**1.1. Glimpse of dataset**')
     chosen_columns = st.multiselect(
         'Exclude/Include column/s',
         df.columns.tolist(),
         default_columns)
-    st.write(df[chosen_columns])
+    df = df[chosen_columns]
+    st.write(df)
+    csv = convert_df(df)
+
+    st.download_button(
+        "Press to Download",
+        csv,
+        "browser_visits.csv",
+        "text/csv",
+        key='browser-data'
+    )
     if classifier == "Random Forest":
         build_forest_model(df[chosen_columns])
     if classifier == "KNN":
@@ -309,10 +346,16 @@ if uploaded_file is not None:
 else:
     st.info('Awaiting for CSV file to be uploaded.')
 
-uploaded_file_for_predict = st.file_uploader("upload file with properly structured data", type=["csv", "xlsx"])
+_, col2, _ = st.columns([1, 4, 7])
+with col2:
+    st.write("upload data to evaluate predictions on") # you can use st.header() instead, too
+uploaded_file_for_predict = st.file_uploader("file must be properly structured", type=["csv", "xlsx"])
+
+# качване на csv съдържащо данни от 14-те канала, тоест без колона EventId
 if uploaded_file_for_predict:
     __for_predict_df = pd.read_csv(uploaded_file_for_predict)
     st.write(__for_predict_df.head())
+
 dataToPredict = DataToPredict()
 import re
 # collect_numbers = lambda x : [float(i) for i in re.split("[^0-9]", x) if i != ""]
@@ -339,5 +382,20 @@ print(__df.head())
 #     st.title("!")
 
 if st.button('predict'):
-    pass
+    loaded_forest_model = pickle.load(open("randomforest_model.pickle", "rb"))
+    # pass
+    # predictпоредово
+    for idx, row in enumerate(collect_rows):
+        predictions = loaded_forest_model.predict(np.array(collect_numbers(row)).reshape(1,-1))
+        st.write(f'prediction result {idx}', predictions)
+    print(dir(predictions))
+    print(predictions.astype(int))
+    st.write(predictions.astype(int))
     # TODO implement prediction of the data in the table
+
+
+# def main():
+#     pass
+
+# if __name__ == "__main__":
+#     main()
